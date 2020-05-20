@@ -1,11 +1,12 @@
-# Simple App using Deno with run, test and configs
+# DENO server api calls with client using oak/server
 
 ---
 
 # Overview
 
-Simple app created with Deno and based from this [simple tutorial](https://dev.to/aralroca/learn-deno-chat-app-37f0?utm_source=digest_mailer&utm_medium=email&utm_campaign=digest_email)
-then I added some fancy icing on top.
+A simple Covid19 app using https://covid-api.com/api with DENO as server and client in Preact.
+
+![Alt text](screenshot.jpg "preview")
 
 # Prerequisite
 
@@ -32,8 +33,3 @@ The app is running in Windows environment so here is my setup for windows user, 
 | `make test`  |         run deno test          |
 | `make debug` |           run debug            |
 | `denon`      |    run deno with hot reload    |
-
-# TODO
-
-- Replace the chat app with better styling or other widgets
-- Fix issue with importmap on test

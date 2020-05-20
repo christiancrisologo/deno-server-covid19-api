@@ -2,54 +2,204 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Chat using Deno</title>
+    <title>COVID19 APP with Deno + OAK</title>
+
+    <script
+      defer
+      src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"
+    ></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bulma@0.8.2/css/bulma.min.css"
+    />
+    <script
+      defer
+      src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"
+    ></script>
   </head>
   <body>
-    <div id="app" />
-    <script type="module">
-      import {
-        html,
-        render,
-        useEffect,
-        useState,
-      } from "https://unpkg.com/htm/preact/standalone.module.js";
+    <section class="section">
+      <div class="container">
+        <h1 class="title">
+          COVID19 API with DENO + PREACT
+        </h1>
+        <p class="subtitle">
+          Simple api using
+          <a href="https://covid-api.com/api">https://covid-api.com/api</a>
+          using DENO + Preact + OAK
+        </p>
+      </div>
+      <section class="section">
+        <div id="app"></div>
 
-      let ws;
+        <script type="module">
+          import {
+            html,
+            render,
+            useEffect,
+            useState,
+          } from "https://unpkg.com/htm/preact/standalone.module.js";
 
-      function Chat() {
-        // Messages
-        const [messages, setMessages] = useState([]);
-        const onReceiveMessage = ({ data }) => setMessages((m) => [...m, data]);
-        const onSendMessage = (e) => {
-          const msg = e.target[0].value;
+          let ws;
 
-          e.preventDefault();
-          ws.send(msg);
-          e.target[0].value = "";
-        };
+          function Form() {
+            const [values, setValues] = useState({
+              date: "",
+              country: "",
+            });
+            const [countries, setCountries] = useState([]);
+            const [isBusy, setIsBusy] = useState(false);
+            const [reports, setReports] = useState([]);
 
-        // Websocket connection + events
-        useEffect(() => {
-          if (ws) ws.close();
-          ws = new WebSocket(`ws://${window.location.host}/ws`);
-          ws.addEventListener("message", onReceiveMessage);
+            const onChange = (e) => {
+              setValues({ ...values, [e.target.name]: e.target.value });
+              e.preventDefault();
+            };
 
-          return () => {
-            ws.removeEventListener("message", onReceiveMessage);
-          };
-        }, []);
+            const onSubmit = async (e) => {
+              e.preventDefault();
+              setIsBusy(true);
+              const date =
+                values.date ||
+                ((d) => new Date(d.setDate(d.getDate() - 2)))(new Date());
+              const formattedDate =
+                values.date ||
+                new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+              const url =
+                values.country === "ALL"
+                  ? `http://localhost:8000/reports/${formattedDate}`
+                  : `http://localhost:8000/reports/${formattedDate}/${values.country}`;
+              const res = await fetch(url);
+              const result = await res.json();
 
-        return html`
-          ${messages.map((message) => html` <div>${message}</div> `)}
+              setReports(Array.isArray(result) ? result : [result]);
+              setIsBusy(false);
+            };
 
-          <form onSubmit=${onSendMessage}>
-            <input type="text" />
-            <button>Send</button>
-          </form>
-        `;
-      }
+            // Websocket connection + events
+            useEffect(async () => {
+              setIsBusy(true);
+              const res = await fetch("http://localhost:8000/countries");
+              const countries = await res.json();
+              setCountries(countries);
+              setValues({ ...values, country: "ALL" });
+              setIsBusy(false);
+              return () => setCountries([]);
+            }, []);
 
-      render(html`<${Chat} />`, document.getElementById("app"));
-    </script>
+            const options =
+              `<option value="ALL" selected="selected" selected >All country</option>` +
+              countries
+                .map(
+                  (item) => `<option value=${item.iso}>${item.name}</option>`
+                )
+                .join("");
+
+            const reportRows = reports
+              .map(
+                (item) => `
+                  <tr>
+                    <td>${(item.region && item.region.name) || ""} ${
+                  (item.region && item.region.province) || ""
+                } ${values.country === "ALL" ? "ALL" : ""} </td>
+                    <td>${item.date}</td>
+                    <td>${item.active}</td>
+                    <td>${item.confirmed}</td>
+                    <td>${item.death || ""}</td>
+                    <td>${item.recovered}</td>
+                    <td>${item.fatality_rate}</td>
+                    <td>${item.last_update}</td>
+                  </tr>
+            `
+              )
+              .join("");
+
+            return html`
+              <progress
+                class="progress is-small is-primary"
+                max="100"
+                style="display: ${isBusy ? "flex" : "none"}"
+                >15%</progress
+              >
+              <section class="section">
+                <form
+                  onSubmit=${onSubmit}
+                  class="field-body"
+                  style="display: ${isBusy ? "none" : "flex"}"
+                >
+                  <div class="field is-grouped  ">
+                    <div class="field">
+                      <label class="label">Date</label>
+                      <div class="control">
+                        <input
+                          type="date"
+                          id="date"
+                          name="date"
+                          class="input"
+                          value=${values.date}
+                          onChange=${onChange}
+                        />
+                      </div>
+                    </div>
+
+                    <div class="field  ">
+                      <label class="label">Country</label>
+                      <div class="field has-addons ">
+                        <div class="control">
+                          <div class="select">
+                            <select
+                              name="country"
+                              value=${values.country}
+                              onChange=${onChange}
+                              dangerouslySetInnerHTML=${{ __html: options }}
+                            >
+                            </select>
+                          </div>
+                        </div>
+                        <div class="control">
+                          <button class="button is-info">
+                            SEND
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </section>
+              <section class="section">
+                <table class="table" style="display: ${isBusy ? "none" : ""}">
+                  <tr>
+                    <th><abbr title="Country">Country</abbr></th>
+                    <th><abbr title="Date">Date</abbr></th>
+                    <th><abbr title="Active">Active</abbr></th>
+                    <th><abbr title="Confirmed">Confirmed</abbr></th>
+                    <th><abbr title="Death">Death</abbr></th>
+                    <th><abbr title="Recovered">Recovered</abbr></th>
+                    <th>
+                      <abbr title="Fatalitry rate">Fatalitry rate</abbr>
+                    </th>
+                    <th><abbr title="Last updated">Last updated</abbr></th>
+                  </tr>
+                  <tbody
+                    dangerouslySetInnerHTML=${{ __html: reportRows }}
+                  ></tbody>
+                </table>
+              </section>
+            `;
+          }
+
+          render(html`<${Form} />`, document.getElementById("app"));
+        </script>
+      </section>
+    </section>
+    <footer class="footer">
+      <div class="content">
+        <p>
+          <strong>COVID19 with DENO</strong> by
+          <a href="http://portfolio.cyianite.now.sh/">CHRISTIAN R. CRISOLOGO</a>
+        </p>
+      </div>
+    </footer>
   </body>
 </html>

@@ -1,29 +1,19 @@
-import { listenAndServe } from "http/server.ts";
-import { acceptWebSocket, acceptable } from "ws/mod.ts";
-import { chat } from "./chat.ts";
+import { Application } from "https://deno.land/x/oak@v4.0.0/mod.ts";
+import router from "./router.ts";
+import notFound from "./middlwares/notFound.ts";
+import logger from "./middlwares/logger.ts";
+import errorHandler from "./middlwares/errorHandler.ts";
+import client from "./middlwares/client.ts";
 
-listenAndServe({ port: 3000 }, async (req) => {
-  if (req.method === "GET" && req.url === "/") {
-    req.respond({
-      status: 200,
-      headers: new Headers({
-        "content-type": "text/html",
-      }),
-      body: await Deno.open("client/index.html"),
-    });
-  }
+const app: any = new Application();
 
-  // WebSockets Chat
-  if (req.method === "GET" && req.url === "/ws") {
-    if (acceptable(req)) {
-      acceptWebSocket({
-        conn: req.conn,
-        bufReader: req.r,
-        bufWriter: req.w,
-        headers: req.headers,
-      }).then(chat);
-    }
-  }
-});
+app.use(logger);
+app.use(client);
+app.use(errorHandler);
+app.use(router.routes());
+app.use(router.allowedMethods());
+app.use(notFound);
 
-console.log("Server running on localhost:3000");
+console.log("app listening to port 8000");
+
+await app.listen({ port: 8000 });

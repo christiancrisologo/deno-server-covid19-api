@@ -5,6 +5,7 @@
     "lodash/": "https://unpkg.com/lodash-es@4.17.15/",
     "pika/": "https://cdn.pika.dev/",
     "ws/": "https://deno.land/std/ws/",
-    "uuid/": "https://deno.land/std/uuid/"
+    "uuid/": "https://deno.land/std/uuid/",
+    "oak": "https://deno.land/x/oak/"
   }
 }
